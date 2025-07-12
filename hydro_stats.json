@@ -1,0 +1,13 @@
+{
+    "hydrate_count": 4,
+    "manual_hydrate_calls": {
+        "troublecorseip": 1,
+        "stevenlnk": 1
+    },
+    "monthly_calls": {
+        "2025-07": {
+            "troublecorseip": 1,
+            "stevenlnk": 1
+        }
+    }
+}
