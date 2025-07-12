@@ -1,163 +1,107 @@
-# Version avec sauvegarde des stats dans un fichier JSON et modes d'humeur dynamiques
-
 import discord
-from discord.ext import commands, tasks
 import os
-import random
 import asyncio
-from keep_alive import keep_alive
+import random
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
-from datetime import datetime
-import json
+from keep_alive import keep_alive
 
-# Charger les variables d’environnement
 load_dotenv()
+
 TOKEN = os.getenv("TOKEN")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 ROLE_ID = int(os.getenv("ROLE_ID"))
 
-# Initialisation du bot
 intents = discord.Intents.default()
-intents.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix='!', intents=intents)
 
-# Fichier de stats
-STATS_FILE = "hydro_stats.json"
-if os.path.exists(STATS_FILE):
-    with open(STATS_FILE, "r") as f:
-        stats = json.load(f)
-else:
-    stats = {
-        "hydrate_count": 0,
-        "manual_hydrate_calls": {},
-        "monthly_calls": {},
-        "current_mood": "doux"
-    }
-
-def save_stats():
-    with open(STATS_FILE, "w") as f:
-        json.dump(stats, f, indent=4)
-
-# Dictionnaire des humeurs
+# ---------------------- MODES D’HUMEUR ----------------------
 MOODS = {
-    "doux": [
-        "🌸 Une petite gorgée d'eau et tout ira mieux.",
-        "🍃 Respire, bois, recommence.",
-        "💧 Hydrate-toi, t’es précieux.se."
-    ],
-    "rigolo": [
-        "🤣 Si tu bois pas d'eau, c’est ton corps qui va faire un bug Windows.",
-        "🤡 Une gorgée d’eau pour chaque neurone encore connecté.",
-        "🍺 Pas de panique, c’est juste de l’eau. (T'es pas un gremlin hein ?)"
-    ],
-    "agressif": [
-        "🔪 Bois. De. L’eau. Ou je t’hydrate moi-même.",
-        "⚠️ T’as 5 secondes pour boire sinon j’arrive avec une bassine.",
-        "💢 Tu veux déshydrater comme une vieille figue ? Non ? Alors BOIS."
-    ],
-    "sass": [
-        "💅 Une reine s’hydrate. T’es pas une vieille chips.",
-        "👑 Bois comme si ton teint dépendait de ça (spoiler : il dépend de ça).",
-        "✨ L’eau c’est le skincare du cœur."
-    ],
-    "badass": [
-        "🔥 Même Artorias aurait bu de l’eau là.",
-        "💀 Les vrais champions boivent entre deux claques de boss.",
-        "🗡️ Bois de l’eau. Puis brise des chaînes."
+    "default": [
+        "🫧 Hé toi, hydratation check ! Va boire un bon verre d’eau maintenant 💦",
+        "🌿 Boire de l’eau c’est pas négociable, c’est sacré.",
+        "🥤 Troublemode : ACTIVÉ → Bouteille d’eau dans la main, go !",
+        "🕒 T’as survécu une heure de plus, célèbre ça avec un verre d’eau.",
+        "🌙 Même les boss de FromSoftware boivent… et toi ?",
     ],
     "chaos": [
-        "🌀 Le monde brûle, mais toi tu vas boire un verre d’eau comme si de rien n’était.",
-        "💣 Et si tu buvais une gorgée pour chaque pensée intrusive ? Challenge accepté.",
-        "🎲 Gloire au hasard, hydratation incluse."
+        "💥 VA BOIRE ou j’envoie des gremlins dans tes canalisations.",
+        "⚡ Une goutte de plus, une neurone de sauvée. Vas-y.",
+        "🔥 Ce message s’autodétruira si tu bois pas dans 10 secondes.",
     ],
     "mystique": [
-        "🔮 L’eau est mémoire. Honore ton corps, élève ton âme.",
-        "🌕 Une gorgée d’eau sous la lune, un pacte avec toi-même.",
-        "🧿 Hydrate-toi. Les guides t’observent."
+        "🔮 Une entité t’observe et attend que tu boives… maintenant.",
+        "🌙 Les étoiles murmurent : hydratation ou damnation.",
+        "✨ Ta destinée dépend de cette gorgée sacrée.",
     ],
     "aigri": [
-        "🙄 Encore un rappel. Ouais. Bois de l’eau si t’y tiens tant que ça.",
-        "😒 Tu vas pas exploser de joie, mais au moins t’es pas sec comme un vieux cactus.",
-        "😑 Voilà, bois. Moi je m’en fous hein."
+        "🙄 Encore à sécher comme une plante oubliée ? Tsss.",
+        "💧 Même les gens pas drôles ont besoin d’eau.",
+        "😒 Bois. Pas pour moi. Pour ton cerveau en fin de vie.",
+    ],
+    "UwU": [
+        "✨ OwO bois un ptit verre d’eau, pwetty pwease ? ✨",
+        "💦 Hii~ le botou veut que tu t’hydwates~",
+        "🥺 T’as pas envie que j’cwise en sec, hein ? Bois~",
     ],
     "spm": [
-        "😩 T’as mal, t’es à cran, mais tu vas BOIRE cette foutue eau.",
-        "🫠 Eau + chocolat + plaid = combo vital. Vas-y.",
-        "🌪️ Avant de crier ou pleurer, bois. Après, fais-toi plaisir."
+        "🩸 T’as pas envie de mourir déshydratée en phase lutéale non ?",
+        "💀 Ta fatigue, ton humeur, tes larmes ? Bois un verre d’eau.",
+        "⚠️ Alerte rouge : hydratation vitale. T’as le droit de pleurer après.",
     ],
-    "uwu": [
-        "🥺 pwease dwink wawa ou je cwy...", 
-        "🌸 watertime uwu", 
-        "✨ hydwation is impowtant~" 
+    "sass": [
+        "👑 Tu veux régner ? Bois d’abord.",
+        "💅 L’eau ? C’est le secret des queens. Et t’en es une.",
+        "🧊 Tu veux être glaciale et irrésistible ? Commence par un verre d’eau.",
     ]
 }
 
+current_mood = "default"
+manual_count = {}
+
+# ---------------------- COMMANDES ----------------------
 @bot.event
 async def on_ready():
     print(f"{bot.user} est en ligne ✨")
     send_water_reminder.start()
 
+@bot.command()
+async def hydrate(ctx):
+    global manual_count
+    user = ctx.author
+    message = random.choice(MOODS.get(current_mood, MOODS["default"]))
+    await ctx.send(f"{user.mention} {message}")
+
+    # Statistiques
+    manual_count[user.name] = manual_count.get(user.name, 0) + 1
+
+@bot.command()
+async def mood(ctx, *, mood_type):
+    global current_mood
+    mood_type = mood_type.lower()
+    if mood_type in MOODS:
+        current_mood = mood_type
+        await ctx.send(f"🌡️ Hydrobot est maintenant en humeur **{mood_type}**.")
+    else:
+        await ctx.send(f"❌ Humeur inconnue. Les humeurs disponibles sont : {', '.join(MOODS.keys())}")
+
+@bot.command()
+async def hydrostats(ctx):
+    global manual_count
+    total = sum(manual_count.values())
+    leaderboard = sorted(manual_count.items(), key=lambda x: x[1], reverse=True)
+    ranking = "\n".join([f"{i+1}. {name} : {count} fois" for i, (name, count) in enumerate(leaderboard)])
+    await ctx.send(f"📊 **Hydrostats** :\nTotal de rappels manuels : {total}\n\n**Classement** :\n{ranking if ranking else 'Aucune donnée 🫠'}")
+
+# ---------------------- RAPPEL AUTO ----------------------
 @tasks.loop(hours=1)
 async def send_water_reminder():
     channel = bot.get_channel(CHANNEL_ID)
     if channel:
-        stats["hydrate_count"] += 1
-        save_stats()
-        mood = stats.get("current_mood", "doux")
-        message = random.choice(MOODS[mood])
+        message = random.choice(MOODS.get(current_mood, MOODS["default"]))
         await channel.send(f"<@&{ROLE_ID}> {message}")
 
-@bot.command()
-async def hydrate(ctx):
-    user = ctx.author.name
-    today = datetime.now().strftime("%Y-%m")
-    stats["manual_hydrate_calls"][user] = stats["manual_hydrate_calls"].get(user, 0) + 1
-    if today not in stats["monthly_calls"]:
-        stats["monthly_calls"][today] = {}
-    stats["monthly_calls"][today][user] = stats["monthly_calls"][today].get(user, 0) + 1
-    save_stats()
-    message = random.choice([
-        f"🔔 {user}, t'as soif de victoire ou de calcium ? Peu importe, bois.",
-        f"🩷 {user}, même les queens s’hydratent. Allez hop.",
-        f"🥤 {user}, chaque gorgée = un pas vers la grandeur.",
-        f"💦 {user} fait 'glou glou' comme un champion. T'as mérité un bisou astral."
-    ])
-    await ctx.send(f"<@&{ROLE_ID}> {message}")
-
-@bot.command()
-async def hydrostats(ctx):
-    msg = f"📊 Total de rappels envoyés : {stats['hydrate_count']}\n"
-    if stats["manual_hydrate_calls"]:
-        msg += "👥 Classement général des buveurs :\n"
-        sorted_users = sorted(stats["manual_hydrate_calls"].items(), key=lambda x: x[1], reverse=True)
-        for i, (user, count) in enumerate(sorted_users, 1):
-            emoji = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "💧"
-            msg += f"{emoji} {user} : {count} fois\n"
-    else:
-        msg += "Personne n’a encore utilisé `!hydrate` manuellement 🪠"
-    await ctx.send(msg)
-
-@bot.command()
-async def topmois(ctx):
-    today = datetime.now().strftime("%Y-%m")
-    if today in stats["monthly_calls"]:
-        msg = f"📅 Classement pour {today} :\n"
-        sorted_month = sorted(stats["monthly_calls"][today].items(), key=lambda x: x[1], reverse=True)
-        for i, (user, count) in enumerate(sorted_month, 1):
-            emoji = "🏆" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "💧"
-            msg += f"{emoji} {user} : {count} fois\n"
-    else:
-        msg = "Aucun appel ce mois-ci 🛌"
-    await ctx.send(msg)
-
-@bot.command()
-async def mood(ctx, *, mood_choice):
-    if mood_choice in MOODS:
-        stats["current_mood"] = mood_choice
-        save_stats()
-        await ctx.send(f"🎭 Humeur changée pour : **{mood_choice}**")
-    else:
-        await ctx.send(f"❌ Humeur inconnue. Choisis parmi : {', '.join(MOODS.keys())}")
-
+# ---------------------- KEEP ALIVE ----------------------
 keep_alive()
+
 bot.run(TOKEN)
