@@ -59,6 +59,45 @@ async def mood(ctx):
         "🐾 Mode UwU : tout est doux, tout est mignon."
     ]
     await ctx.send(f"{ctx.author.mention} {random.choice(moods)}")
+import random
+
+@bot.command()
+async def hydrostats(ctx):
+    messages = [
+        "📊 Statistiques indisponibles pour l’instant. Mais t’as bu combien de verres aujourd’hui, hein ?",
+        "📉 Stats en pause… comme ton envie de te lever de ton fauteuil.",
+        "📈 T’es en haut du classement, ou au fond du tonneau ? Mystère.",
+    ]
+    await ctx.send(random.choice(messages))
+
+@bot.command()
+async def troublealcoolique(ctx):
+    messages = [
+        f"🍷 {ctx.author.mention}, une lampée de vin et tu oublies que t’as encore pas fini Sekiro.",
+        f"🥃 {ctx.author.mention}, tu verses un verre pour chaque mort sur Elden Ring ? Le foie est en PLS.",
+        f"🍺 {ctx.author.mention}, boire pour oublier que Leno existe ? Validé.",
+        f"🍹 {ctx.author.mention}, encore un verre et t’arrives à battre Artorias les yeux fermés.",
+    ]
+    await ctx.send(random.choice(messages))
+
+@bot.command()
+async def verredevin(ctx):
+    messages = [
+        f"🍇 {ctx.author.mention}, un verre de vin c’est un verre d’eau en plus… en plus joyeux.",
+        f"🍷 {ctx.author.mention}, tu veux l’aération du nez à l’ancienne ? Tire une gorgée.",
+        f"🧛 {ctx.author.mention}, le vin c’est du sang de boss FromSoftware filtré par l’émotion. Santé.",
+    ]
+    await ctx.send(random.choice(messages))
+
+@bot.command()
+async def calimero(ctx):
+    messages = [
+        f"😭 {ctx.author.mention}, *encore* mort à un millimètre de vie du boss ? Oui, c’est injuste.",
+        f"🖤 {ctx.author.mention} est en mode 'je boude dans la bonfire zone'.",
+        f"🎭 {ctx.author.mention}, t’as perdu contre un mob nul ? Viens, on pleure ensemble sur une save corrompue.",
+        f"💢 {ctx.author.mention}, 'LIFE IS PAIN' édition spéciale FromSoft, servi chaud dans ton mug Calimero™️.",
+    ]
+    await ctx.send(random.choice(messages))
 
 keep_alive()
 bot.run(TOKEN)
