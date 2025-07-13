@@ -49,17 +49,34 @@ async def hydrate(ctx):
     ]
     await ctx.send(f"{ctx.author.mention} {random.choice(phrases)}")
 
+last_mood_message = None  # Stocke le dernier message envoyé
+
 @bot.command()
-async def mood(ctx):
-    moods = [
-        "😈 Mode Chaos : déclenché. Prépare-toi à faire n’importe quoi.",
-        "✨ Mode Mystique : intuition x1000. Lis entre les lignes aujourd’hui.",
-        "😒 Mode Aigri : ne pas déranger. Tu grognes au moindre bruit.",
-        "🔥 Mode SPM : éruption volcanique imminente.",
-        "🐾 Mode UwU : tout est doux, tout est mignon."
-    ]
-    await ctx.send(f"{ctx.author.mention} {random.choice(moods)}")
-import random
+async def mood(ctx, *, mood_type=None):
+    global last_mood_message
+
+    moods = {
+        "uwu": "🐾 Mode UwU : tout est doux, tout est mignon.",
+        "spm": "🔥 Mode SPM : éruption volcanique imminente.",
+        "aigri": "💀 Mode Aigri : râler est une forme d’art.",
+        "chaos": "🧨 Mode Chaos : les lois de la logique n'ont plus cours.",
+        "mystique": "🔮 Mode Mystique : tout est signe, tout est fluide.",
+        "sass": "👠 Mode Sass : tout est jugé, avec style.",
+    }
+
+    if mood_type and mood_type.lower() in moods:
+        try:
+            # Supprimer le message précédent si possible
+            if last_mood_message:
+                await last_mood_message.delete()
+        except:
+            pass  # On ignore les erreurs de suppression
+
+        message = await ctx.send(f"{ctx.author.mention} {moods[mood_type.lower()]}")
+        last_mood_message = message
+    else:
+        await ctx.send("🌀 Mood inconnu. Essaie : `!mood uwu`, `spm`, `aigri`, `chaos`, `mystique`, `sass`…")
+
 
 @bot.command()
 async def hydrostats(ctx):
